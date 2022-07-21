@@ -17,6 +17,8 @@ Exporter qtm vers c3d dans Qualisys==========================================
 
 -Cliquer sur File->Export->To C3D... Les cases "exclude unidentified trajectories" et "exclude empty trajectories" doivent êtres cochées, Label Format: De facto standard, Event Outout Format: Following the c3d specification, Units: Millimeters. Cliquer sur "OK"
 
+-Si le fichier c3d contient plus de 62576 frames (en 100 fps): créer une copie de ce fichier, supprimer toute les trajectoires à part une et renommez la pour la retrouver et la supprimer après le traitement. Renommer ce fichier "template.c3d" et mettez le à la place du fichier template.c3d fourni.
+
 Executer le fichier python=======================================================
 
 -Les fichiers builder.py, template.c3d et les fichiers c3d à traiter doivent être dans le même répertoire
