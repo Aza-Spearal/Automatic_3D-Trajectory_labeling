@@ -1,6 +1,6 @@
 Tutoriel pour executer le fichier builder.py
 
-Préréquis:====================================================================
+Préréquis====================================================================
 
 -Installer Python (version>=3.7 pour PyC3Dserver)
 
@@ -17,7 +17,7 @@ Exporter qtm vers c3d dans Qualisys==========================================
 
 -Cliquer sur File->Export->To C3D... Les cases "exclude unidentified trajectories" et "exclude empty trajectories" doivent êtres cochées, Label Format: De facto standard, Event Outout Format: Following the c3d specification, Units: Millimeters. Cliquer sur "OK"
 
-Executer le fichier python:=======================================================
+Executer le fichier python=======================================================
 
 -Mettre le ou les fichiers c3d en paramètre: exemple: python builder.py Measurement05.c3d Measurement10.c3d
 
