@@ -1,8 +1,11 @@
 Tutoriel pour executer le fichier builder.py
 
 Préréquis:
-Installer Python (version>=3.7 pour PyC3Dserver)
-Installer PyC3Dserver avec <pip install pyc3dserver> (plus d'infos: https://github.com/mkjung99/pyc3dserver)
+
+-Installer Python (version>=3.7 pour PyC3Dserver)
+
+-Installer PyC3Dserver avec <pip install pyc3dserver> (plus d'infos: https://github.com/mkjung99/pyc3dserver)
+
 -Installer les bibliothèques sys, pandas, math et numpy
 -Avoir un fichier qtm avec Qualisys
 
