@@ -10,6 +10,7 @@ Préréquis:
 
 -Avoir un fichier qtm avec Qualisys
 
+
 Exporter qtm vers c3d dans Qualisys:
 
 -Depuis "Unidentified trajectories", mettre les trajectoires avec un fill level supérieur à 1% dans "Labeled trajectories". Il ne fait pas avoir plus de 255 trajectoires dans "Labeled trajectories", il faut augmenter le seuil des 1% pour avoir moins de trajectoires.
