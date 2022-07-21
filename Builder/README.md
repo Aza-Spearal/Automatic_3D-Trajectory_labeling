@@ -24,4 +24,4 @@ Executer le fichier python======================================================
 Pour chaque fichier "file.c3d" en paramètre va etre créé un fichier "file_build.c3d"
 Un fichier "Abstract.txt" est créé avec les informations sur les nouveaux fichiers
 
-Depuis qualisys: Supprimer le marqueur "a_supprimer" de "Labeled trajectories"
+-Depuis qualisys: Supprimer le marqueur "a_supprimer" de "Labeled trajectories"
