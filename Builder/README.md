@@ -19,7 +19,7 @@ Exporter qtm vers c3d dans Qualisys==========================================
 
 Executer le fichier python=======================================================
 
--Le fichier builder.py, template.c3d et les fichiers c3d à traiter doivent être dans le même répertoire
+-Les fichiers builder.py, template.c3d et les fichiers c3d à traiter doivent être dans le même répertoire
 
 -Depuis ce répertoire, éxecuter le fichier en mettant le ou les fichiers c3d en paramètre: exemple: python builder.py Measurement05.c3d Measurement10.c3d
 
