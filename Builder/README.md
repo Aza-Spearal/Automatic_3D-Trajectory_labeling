@@ -31,7 +31,7 @@ Executer le fichier python======================================================
 
 -Depuis ce répertoire, éxecuter le fichier en mettant le ou les fichiers c3d en paramètre: exemple: python builder.py Measurement05.c3d Measurement10.c3d
 
-Pour chaque fichier "file.c3d" en paramètre va etre créé un fichier "file_build.c3d"
+Pour chaque fichier "file.c3d" en paramètre va etre créé un fichier "file_build.c3d".
 Un fichier "Abstract.txt" est créé avec les informations sur les nouveaux fichiers
 
 -Depuis qualisys: Supprimer le marqueur "a_supprimer" de "Labeled trajectories"
