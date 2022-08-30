@@ -21,6 +21,7 @@ Exporter qtm vers c3d dans Qualisys==========================================
 
 
 Avant l'execution=======================================================
+
 Si le nom des trajectoires commencent toujours avec les mêmes caractères, ceux ci sont supprimés pour éviter une redondance inutile. Pour désactiver ça, commentez la section appropriée dans la fonction getData()
 
 
