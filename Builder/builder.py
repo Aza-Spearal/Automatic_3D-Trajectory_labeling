@@ -6,16 +6,7 @@ import pandas as pd
 import math
 import numpy as np
 
-def data_to_df(labs, data):#transforme les données c3d en un dictionnaire de dataframe
-    labdico = {}
-    for i in range(len(labs)):
-        labdico[labs[i]] = pd.DataFrame(data[labs[i]], columns=['x', 'y', 'z'])
-        df = labdico[labs[i]].apply(pd.to_numeric)
-        labdico[labs[i]] = df[(df.x!=0) & (df.y!=0) & (df.z!=0)]
-    return labdico
-    
-
-def getData(file_name, close_other=True):#les données intéressantes du fichier c3d
+def getData(file_name, number=0, close_other=True):#les données intéressantes du fichier c3d
     if close_other:#sait pas si ça marche
         ret=c3d.close_c3d(itf)
     ret = c3d.open_c3d(itf, file_name)
@@ -26,9 +17,24 @@ def getData(file_name, close_other=True):#les données intéressantes du fichier
     
     ret=c3d.close_c3d(itf)
     
-    labdico=data_to_df(lab, data)
+    if any(t[0:4]=='New ' for t in lab):
+        lab=[e[4:] for e in lab]
+        datak=[e[4:] for e in data.keys()]
+        data=dict(zip(datak, list(data.values())))
+    
+    if number != 0:
+        lab=[str(number)+'_'+e for e in lab]
+        datak=[str(number)+'_'+e for e in data.keys()]
+        data=dict(zip(datak, list(data.values())))
+    
+    labdico = {}
+    for i in lab:
+        df = pd.DataFrame(data[i], columns=['x', 'y', 'z']).apply(pd.to_numeric)
+        df = df[(df.x!=0) & (df.y!=0) & (df.z!=0)]
+        if not df.empty:
+            labdico[i]=df.copy()       
 
-    return n_frames, lab, data, labdico
+    return n_frames, list(labdico.keys()), labdico  
     
 
 def is_new(lab, frame):
@@ -47,10 +53,30 @@ def markers_present(frame):
             mark.append(i)
     return mark
     
+def n_markers_present(frame):
+    n=0
+    for i in labdico:
+        if is_present(labdico[i], frame):
+            n+=1
+    return n
+    
 def superpos(df1, df2): #vrai si 2 marqueurs (représentés par des dataframes) se superposent
     if (df1.index[-1]<df2.index[0]) or (df2.index[-1]<df1.index[0]):
         return False
     else: return True
+    
+
+def avg_speed(traj, step):
+    if len(labdico[traj])>step:
+        cpt=0
+        speed=0
+        for frame in range(labdico[traj].index[0], labdico[traj].index[-1]-step, step):
+            pos_future=labdico[traj].loc[frame+step]
+            speed+=math.dist(labdico[traj].loc[frame], pos_future)
+            cpt+=1
+        return speed/(cpt*step)
+    else:
+        return 'step error'
 
 def get_key_from_value(val):
     keys = [k for k, v in connect.items() if val in v]
@@ -90,107 +116,157 @@ def connexion(lab1, lab2):#enrichie le dictionnaire connect en connectant les ma
 
 #===============================================================================================
 #===============================================================================================
-# 3  fonctions pour supprimer les artefacts:
+# Fonctions pour supprimer les artefacts:
 
-def find_artifacts1(labdico, artif_detec_step1, artif_dist_max1):#Supprime les marqueurs loin des autres en regardant toute les "artif_detec_step1" frames
-    dist_list=[]
-    frames_seen=[]
-    erase=[]
-    erase_save=['']
+def find_artifacts1(labdico, step, dist_max):#Supprime les marqueurs loin des autres en regardant toute les "artif_detec_step1" frames
     
-    for frame in range(artif_detec_step1 ,n_frames-artif_detec_step1, artif_detec_step1):
+    artef=[]
+    frames_seen=[]
+    
+    for frame in range(step ,n_frames-step, step):
         mark_pres=markers_present(frame)
         #On dégage les marqueurs distants:
         for i in mark_pres:
             distant=True
             for j in mark_pres:
                 if i!=j:
-                    if math.dist(labdico[i].loc[frame], labdico[j].loc[frame]) < artif_dist_max1:
+                    if math.dist(labdico[i].loc[frame], labdico[j].loc[frame]) < dist_max:
                         distant=False
                         break
             if distant:
-                dist_list.append(i)
+                artef.append(i)
                 
-    return sorted(list(dict.fromkeys(dist_list)))
+    return sorted(list(dict.fromkeys(artef)))
 
 #===============================================================================================
-def find_artifacts2(labdico, artif_dist_max2):#Supprime les marqueurs si loins des autres a leur naissance et mort
+def find_artifacts2(labdico, dist_max):#Supprime les marqueurs si loins des autres a leur naissance et mort
     
-    dist_list=[]
+    artef=[]
     frames_seen=[]
-    erase=[]
-    erase_save=['']
     
-    while erase_save!=[]:#boucle peut etre inutile
-        erase_save=[]
-        for r in [0, -1]:
-            frames_seen=[]
-            for h in labdico:
-                if not labdico[h].index[r] in frames_seen: #si n'a pas été vu:
-                    frames_seen.append(labdico[h].index[r]) #on l'ajoute à la liste, frame_seen[-1] devient la frame intéressante
-                    mark_pres = markers_present(frames_seen[-1]) #les mark qui sont là dans la frame
-                    mark_new=[]
-                    mark_old=[]
-                    
-                    if r==0:
-                        for i in mark_pres:
-                            if is_new(i, frames_seen[-1]):
-                                mark_new.append(i) #les mark qui viennent d'apparaitre avec la frame
-                    elif r==-1:
-                        for i in mark_pres:
-                            if is_old(i, frames_seen[-1]):
-                                mark_old.append(i) #les mark qui disparaissent avec la frame
+    for r in [0, -1]:#0 pour la première frame, -1 pour la dernière
+        frames_seen=[]
+        for h in labdico:
+            if not labdico[h].index[r] in frames_seen: #si n'a pas été vu:
+                frames_seen.append(labdico[h].index[r]) #on l'ajoute à la liste, frame_seen[-1] devient la frame intéressante
+                mark_pres = markers_present(frames_seen[-1]) #les mark qui sont là dans la frame
+                mark=[]
 
-                    mark=mark_new+mark_old
 
-                    for i in mark:
-                        distant=True
-                        for j in mark_pres:
-                            if i!=j:
-                                if math.dist(labdico[i].iloc[r], labdico[j].loc[frames_seen[-1]]) < artif_dist_max2:
-                                    distant=False
-                                    break                   
-                        if distant:                    
-                            erase_save.append(i)
+                for i in mark_pres:
+                    if r==0 and is_new(i, frames_seen[-1]):
+                        mark.append(i) #les mark qui apparaissent avec la frame
+                    elif r==-1 and is_old(i, frames_seen[-1]):
+                        mark.append(i) #les mark qui disparaissent avec la frame
 
-            for i in erase_save:
-                if i in labdico:
-                    del labdico[i]
-
-            erase=erase+erase_save  
+                #Les marqueurs qui apparaissent ou disparaissent sont ils loins des autres marqueurs présents à la frame d'apparition/de disparition ?
+                for i in mark:
+                    distant=True
+                    for j in mark_pres:
+                        if i!=j:
+                            if math.dist(labdico[i].iloc[r], labdico[j].loc[frames_seen[-1]]) < dist_max:
+                                distant=False
+                                break                   
+                    if distant:                    
+                        artef.append(i)
             
-        return sorted(list(dict.fromkeys(erase)))
-    
+    return sorted(list(dict.fromkeys(artef)))
     
 #===============================================================================================
-def find_artifacts3(labdico, artif_detec_step3, artif_dist_motion):#Supprime les marqueurs si ne bougent pas assez
+def find_artifacts3(labdico, step, dist_motion):#Supprime les marqueurs si ne bougent pas assez
     
-    motion_list=[]
+    artef=[]
+    
     for i in labdico:
-        if len(labdico[i])>artif_detec_step3:
+        if len(labdico[i])>step:
             motion=False
-            for frame in range(labdico[i].index[0], labdico[i].index[-1]-artif_detec_step3, artif_detec_step3):
-                i_future=labdico[i].loc[frame+artif_detec_step3]
-                if math.dist(labdico[i].loc[frame], i_future) > artif_dist_motion:
+            for frame in range(labdico[i].index[0], labdico[i].index[-1]-step, step):
+                pos_future=labdico[i].loc[frame+step]
+                if math.dist(labdico[i].loc[frame], pos_future) > dist_motion:
                     motion=True
                     break
             if not motion:
-                motion_list.append(i)
+                artef.append(i)
                 
-    return motion_list
-
+    return sorted(list(dict.fromkeys(artef)))
 
 #===============================================================================================
-def find_artifacts(labdico):
+def find_artifacts4(labdico, step, dist_motion):#Supprime les marqueurs si ne bougent pas assez
     
-    a=find_artifacts1(labdico, 100, 670)
+    artef=[]
     
-    b=find_artifacts2(labdico, 625)
-    
-    c=find_artifacts3(labdico, 75, 3.5)
+    for i in labdico:
+        if len(labdico[i])>step:
+            if avg_speed(i, step)<dist_motion:
+                artef.append(i)
                 
-    return sorted(list(dict.fromkeys(a+b+c)))
+    return sorted(list(dict.fromkeys(artef)))
 
+#===============================================================================================
+def find_artifacts5(labdico, n_marqueurs):
+    
+    end_dict={} #une clé de end_dict est le nom d'une trajectoire, sa valeur est l'entier correspondant à sa dernière frame
+    for i in labdico:
+        end_dict[i]=labdico[i].index[-1]
+    end_dict = dict(sorted(end_dict.items(), key=lambda item: item[1]))# les trajectoires qui se terminent en premier sont les premieres du dictionnaire 
+
+    proba_artef={}
+    end_fr=0
+    for i in labdico:
+        frame_start=labdico[i].index[0]# on regarde à l'apparition de chaque trajectoire si on a plus de 15 marqueurs
+        if n_markers_present(frame_start)>n_marqueurs and frame_start>end_fr: #et après end_fr pour pas refaire les memes choses
+            for j in end_dict:# on cherche j: le marqueur qui a sa disparition fait qu'il n'y a plus plus de 15 marqueurs
+                if end_dict[j]>frame_start and n_markers_present(end_dict[j])<=15:
+                    for k in markers_present(frame_start): #on ajoute chaque marqueurs présents à proba_artef
+                        if not k in proba_artef:
+                            proba_artef[k]=0
+
+                        if len(labdico[k])>200:
+                            step=100
+                        else:
+                            step=10
+
+                        proba_artef[k]+=avg_speed(k, step)
+
+                    end_fr=end_dict[j]
+                    break;#quitte la boucle de end_dict car on vient de trouver le end
+
+
+    if proba_artef: #si le dico n'est pas vide
+        return list({k: v for k, v in sorted(proba_artef.items(), key=lambda item: item[1])}.keys())[0]
+    else:
+        return []
+        
+#==================================================================================================
+def delete_artifacts(lab, labdico):
+    
+    artifacts = list(dict.fromkeys(find_artifacts3(labdico, 75, 3.5)+find_artifacts4(labdico, 80, 0.01625)))
+    lab=[x for x in lab if x not in set(artifacts)]
+    for i in artifacts:
+        del labdico[i]
+
+    artif = artifacts
+    artifacts = []
+    
+    while True:
+        artifacts=list(dict.fromkeys(find_artifacts1(labdico, 90, 670)+find_artifacts2(labdico, 625)))
+        artif += artifacts
+        if artifacts == []:
+            break;
+        lab=[x for x in lab if x not in set(artifacts)]
+        for i in artifacts:
+            del labdico[i]
+
+    while True:
+        artifacts=find_artifacts5(labdico, 15)
+        if artifacts == []:
+            break;
+        else:
+            lab=[x for x in lab if x not in set(artifacts)]
+            del labdico[artifacts]#artifact a une taille de 1, donc pas besoin de faire de boucle
+            artif += [artifacts]
+
+    return sorted(artif)
 
 #================================================================================================
 #===============================================================================================
@@ -199,21 +275,19 @@ for file in sys.argv[1:]:# pour chaque file en argument
     print('Traitement du fichier '+str(file[:-4]))
     
     #on récupère les données:
-    n_frames, lab, data, labdico = getData(file)
+    n_frames, lab, labdico = getData(file)
     file=file[:-4]
 
-    #suppression des artefacts
-    artifacts=find_artifacts(labdico)
+    artifacts=delete_artifacts(lab, labdico)
     
-    lab=[x for x in lab if x not in set(artifacts)]
-    labdico=data_to_df(lab, data)
-        
+    lab=list(labdico.keys())        
+    
     print('Les artefacts ont été supprimés:', artifacts)
-
+    
     #on créer la dataframe dist qui stocke les distances spatio-temporel entre marqueurs
     str1= "'" + "', '".join(lab) + "'"
     str2= "'" + "', '".join(lab) + "'"
-    
+
     dist = pd.DataFrame()
     exec("dist = pd.DataFrame(index=["+ str1 +"], columns=["+ str2 +"])")
 
@@ -227,7 +301,7 @@ for file in sys.argv[1:]:# pour chaque file en argument
 
     dist=dist.apply(pd.to_numeric)
 
-    
+
     connect ={}
 
     #si un marqueur est présent du début à la fin, on le met dans le dictionnaire et on le supprime de la matrice "dist"
@@ -237,9 +311,9 @@ for file in sys.argv[1:]:# pour chaque file en argument
             dist=dist.drop(i)
             dist=dist.drop(i, axis=1)
 
-
     #On cherche la distance minimum dans la matrice, on connecte les marqueurs dans le dictionnaire et on les supprime de la matrice dist jusqu'a ce que la plus petite distance restante soit d_max
-    d_max=60000 #dist.max(1).max()+1
+    
+    dist.max(1).max()+1
     while (dist.min(1).min()<d_max):
         min=dist.stack().idxmin()
         connexion(min[0], min[1])
@@ -254,12 +328,12 @@ for file in sys.argv[1:]:# pour chaque file en argument
             o.write(str(v))
             o.write('\n')
         o.write('Artefacts: '+str(artifacts)+'\n\n')
-        
+
         print('Le fichier Abstract.txt a été mis à jour')
-    
+
     fill_level = pd.DataFrame(columns=['Before', 'After'])
-    
-    
+
+
     #on liste les trajectoires de connect:
     liste=[]
     for k,v in connect.items():
@@ -270,7 +344,7 @@ for file in sys.argv[1:]:# pour chaque file en argument
 
     cpt=0
     print('Marqueurs modifiés:')
-    
+
     #On ouvre le fichier vide
     ret = c3d.open_c3d(itf, 'template.c3d')
 
@@ -283,7 +357,7 @@ for file in sys.argv[1:]:# pour chaque file en argument
     for key in labdico:
         if key in connect:
             val=connect[key]
-            
+
             #Créer nouveau marqueur key:
             string="labdico['"+key+"']"
             key_size=len(labdico[key])
@@ -311,8 +385,8 @@ for file in sys.argv[1:]:# pour chaque file en argument
         ret=c3d.add_marker(itf, key, tab.to_numpy(), adjust_params=True)
         cpt+=1
         print(str(cpt)+'/'+str(size)+':', key)
-        
-        
+
+
     fill_level['Gain'] = fill_level['After'] - fill_level['Before']
     print(fill_level.sort_values(by=['Gain'], ascending=False))
 
@@ -321,5 +395,5 @@ for file in sys.argv[1:]:# pour chaque file en argument
     print('Le fichier '+str(file)+'_build a été créé\n') 
 
     ret=c3d.close_c3d(itf)
-    
+
 print('Tous les fichiers ont été traités\n') 
