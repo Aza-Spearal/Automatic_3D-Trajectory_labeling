@@ -17,15 +17,17 @@ def getData(file_name, number=0, close_other=True):#les données intéressantes 
     
     ret=c3d.close_c3d(itf)
     
-    if any(t[0:4]=='New ' for t in lab):
-        lab=[e[4:] for e in lab]
-        datak=[e[4:] for e in data.keys()]
-        data=dict(zip(datak, list(data.values())))
-    
-    if number != 0:
-        lab=[str(number)+'_'+e for e in lab]
-        datak=[str(number)+'_'+e for e in data.keys()]
-        data=dict(zip(datak, list(data.values())))
+    #Si toutes les noms des trajectoires commencent avec les memes caractères (ex: New), on supprime ces caractères redondants
+    for i in range(1, len(lab[0])):
+        if all(list(t[0:i]==lab[0][0:i] for t in lab)):
+            pass;
+        else:
+            i-=1
+            lab=[e[i:] for e in lab]
+            datak=[e[i:] for e in data.keys()]
+            data=dict(zip(datak, list(data.values())))
+            break;
+        
     
     labdico = {}
     for i in lab:
@@ -37,15 +39,19 @@ def getData(file_name, number=0, close_other=True):#les données intéressantes 
     return n_frames, list(labdico.keys()), labdico  
     
 
+#vrai si le marqueur lab commence à la frame
 def is_new(lab, frame):
     return labdico[lab].index[0]==frame
 
+#vrai si le marqueur lab fini à la frame
 def is_old(lab, frame):
     return labdico[lab].index[-1]==frame
 
+#vrai si le marqueur lab existe à la frame
 def is_present(lab, frame):
     return frame in lab.index
 
+#liste les marqueurs présents à la frame
 def markers_present(frame):
     mark=[]
     for i in labdico:
@@ -53,6 +59,7 @@ def markers_present(frame):
             mark.append(i)
     return mark
     
+#retourne le nombre de marqueur présents à la frame
 def n_markers_present(frame):
     n=0
     for i in labdico:
@@ -60,7 +67,8 @@ def n_markers_present(frame):
             n+=1
     return n
     
-def superpos(df1, df2): #vrai si 2 marqueurs (représentés par des dataframes) se superposent
+#vrai si 2 marqueurs (représentés par des dataframes) se superposent
+def superpos(df1, df2):
     if (df1.index[-1]<df2.index[0]) or (df2.index[-1]<df1.index[0]):
         return False
     else: return True
@@ -84,7 +92,8 @@ def get_key_from_value(val):
         return keys[0]
     return None
 
-def get_head_tail_connect():#liste des tetes et queue du dictionaire connect
+#liste des tetes et queue du dictionaire connect
+def get_head_tail_connect():
     if len(connect)==0:
         return [], []
     else:
@@ -270,9 +279,127 @@ def delete_artifacts(lab, labdico):
 
 #================================================================================================
 #===============================================================================================
+#Fonctions de nommage:
+
+def nomination(lab, labdico):
+    
+    name_list=markers_present(0)
+
+    #On trie les marqueurs suivant l'axe z
+    namer_sort={}
+    for i in name_list:
+        namer_sort[i]=labdico[i].iloc[0].z
+    namer_sort=dict(sorted(namer_sort.items(), key=lambda item: item[1]))
+
+    #On nomme la tete
+    tete = list(namer_sort.keys())[-1]
+    lab = namer(tete, 'Tete', lab, labdico, namer_sort)
+    namer_sort=dict(sorted(namer_sort.items(), key=lambda item: item[1]))
+    
+    #On cherche le torse
+    torse_ep_save = list(namer_sort.keys())[:-1][-3:]
+    torse_ep_dict={}
+    for i in torse_ep_save[:-1]:
+        for j in torse_ep_save[1:]:
+            if i!=j:
+                torse_ep=torse_ep_save.copy()
+                torse_ep.remove(i)
+                torse_ep.remove(j)
+                torse_ep_dict[torse_ep[0]]=math.dist(labdico[i].iloc[0], labdico[j].iloc[0])
+    torse_ep_dict_sort= dict(sorted(torse_ep_dict.items(), key=lambda item: item[1]))
+
+    #On nomme le torse
+    torse = list(torse_ep_dict_sort.keys())[-1]
+    lab = namer(torse, 'Torse', lab, labdico, namer_sort)
+    namer_sort=dict(sorted(namer_sort.items(), key=lambda item: item[1]))
+
+    #On nomme le bassin
+    bassin = list(namer_sort.keys())[-7]
+    lab = namer(bassin, 'Bassin', lab, labdico, namer_sort)
+    namer_sort=dict(sorted(namer_sort.items(), key=lambda item: item[1]))
+
+    #On nomme les épaules
+    ep = list(torse_ep_dict_sort.keys())[:-1]
+    lab = namer_side(ep, 'ep', lab, labdico, namer_sort, True)
+    namer_sort=dict(sorted(namer_sort.items(), key=lambda item: item[1]))
+    
+    #On nomme les coudes
+    coude = list(namer_sort.keys())[9:11]
+    lab = namer_side(coude, 'Coude', lab, namer_sort, labdico)
+    namer_sort=dict(sorted(namer_sort.items(), key=lambda item: item[1]))
+
+    #On nomme les pieds
+    pieds = list(namer_sort.keys())[0:2]
+    lab = namer_side(pieds, 'Pied', lab, namer_sort, labdico)
+    namer_sort=dict(sorted(namer_sort.items(), key=lambda item: item[1]))
+
+    #On nomme les genoux
+    genoux = list(namer_sort.keys())[2:4]
+    lab = namer_side(genoux, 'Genou', lab, namer_sort, labdico)
+    namer_sort=dict(sorted(namer_sort.items(), key=lambda item: item[1]))
+
+    #On cherche les mains
+    main_hanche_save = list(namer_sort.keys())[4:8]
+    main_hanche_dict={}
+    for i in main_hanche_save:
+        for j in main_hanche_save:
+            if i!=j:
+                main_hanche=main_hanche_save.copy()
+                main_hanche.remove(i)
+                main_hanche.remove(j)
+                main_hanche_dict[i,j]=math.dist(labdico[i].iloc[0], labdico[j].iloc[0])
+    main_hanche_dict_sort= dict(sorted(main_hanche_dict.items(), key=lambda item: item[1]))
+
+    #On nomme les mains
+    mains = list(list(main_hanche_dict_sort.keys())[-1])
+    lab = namer_side(mains, 'Main', lab, labdico, namer_sort, True)
+    namer_sort=dict(sorted(namer_sort.items(), key=lambda item: item[1]))
+
+    #On nomme les hanches
+    hanches = [item for item in main_hanche_save if item not in mains]
+    lab = namer_side(hanches, 'Hanche', lab, labdico, namer_sort, True)
+    namer_sort=dict(sorted(namer_sort.items(), key=lambda item: item[1]))
+    
+    
+    return lab, labdico
+    
+    
+def sider(marker):
+    #J'utilise une formule mathématiques pour savoir si le marker est à gauche ou à droite de l'axe torse/bassin
+    x1=labdico['Torse'].iloc[0].x
+    y1=labdico['Torse'].iloc[0].y
+    x2=labdico['Bassin'].iloc[0].x
+    y2=labdico['Bassin'].iloc[0].y
+    x=labdico[marker].iloc[0].x
+    y=labdico[marker].iloc[0].y
+    
+    if (x-x1)*(y2-y1)-(y-y1)*(x2-x1)>0:
+        return 'droit'
+    else:
+        return 'gauche'
+    
+def namer_side(mark, mark_str, lab, labdico, namer_sort, fem=False):
+    for i in mark:
+        name= mark_str+'_' + sider(i)
+        if sider(i)=='droit' and fem:
+            name=name+'e'
+        lab = list(map(lambda x: x.replace(i, name), lab))
+        labdico[name] = labdico.pop(i)
+        namer_sort[name] = namer_sort.pop(i)
+    return lab
+
+def namer(mark, mark_str, lab, labdico, namer_sort):
+    lab = list(map(lambda x: x.replace(mark, mark_str), lab))
+    labdico[mark_str] = labdico.pop(mark)
+    namer_sort[mark_str] = namer_sort.pop(mark)
+    return lab
+
+
+#================================================================================================================================================================================================
+#===============================================================================================================================================================================================
 for file in sys.argv[1:]:# pour chaque file en argument
 
-    print('Traitement du fichier '+str(file[:-4]))
+    print('Traitement du fichier '+ file)
     
     #on récupère les données:
     n_frames, lab, labdico = getData(file)
@@ -283,6 +410,12 @@ for file in sys.argv[1:]:# pour chaque file en argument
     lab=list(labdico.keys())        
     
     print('Les artefacts ont été supprimés:', artifacts)
+    
+    if n_markers_present(0)==15:
+        lab, labdico = nomination(lab, labdico)
+        print('Les noms ont été donné')
+    else:
+        print("Il n'y a pas 15 marqueurs à la première frame, les noms n'ont pas pu être donné")
     
     #on créer la dataframe dist qui stocke les distances spatio-temporel entre marqueurs
     str1= "'" + "', '".join(lab) + "'"
@@ -311,9 +444,9 @@ for file in sys.argv[1:]:# pour chaque file en argument
             dist=dist.drop(i)
             dist=dist.drop(i, axis=1)
 
+
     #On cherche la distance minimum dans la matrice, on connecte les marqueurs dans le dictionnaire et on les supprime de la matrice dist jusqu'a ce que la plus petite distance restante soit d_max
-    
-    dist.max(1).max()+1
+    d_max=dist.max(1).max()+1
     while (dist.min(1).min()<d_max):
         min=dist.stack().idxmin()
         connexion(min[0], min[1])
@@ -333,6 +466,8 @@ for file in sys.argv[1:]:# pour chaque file en argument
 
     fill_level = pd.DataFrame(columns=['Before', 'After'])
 
+
+    
 
     #on liste les trajectoires de connect:
     liste=[]
@@ -373,22 +508,8 @@ for file in sys.argv[1:]:# pour chaque file en argument
             ret=c3d.add_marker(itf, key, tab.to_numpy(), adjust_params=True)
             #ret=c3d.fill_marker_gap_interp(itf, key, k=3, search_span_offset=5, min_needed_frs=10)#si il y a des trous
 
-            fill_level.loc[key] = [key_size/(n_frames+1), chain_size/(n_frames+1)]
-
             cpt+=1
             print(str(cpt)+'/'+str(size)+':', val)
-
-    print('Marqueurs non modifiés:')
-    liste=[item for item in lab if item not in liste]
-    for key in liste:
-        tab = labdico[key].reindex(list(range(0,n_frames)),fill_value=None)
-        ret=c3d.add_marker(itf, key, tab.to_numpy(), adjust_params=True)
-        cpt+=1
-        print(str(cpt)+'/'+str(size)+':', key)
-
-
-    fill_level['Gain'] = fill_level['After'] - fill_level['Before']
-    print(fill_level.sort_values(by=['Gain'], ascending=False))
 
     ret=c3d.save_c3d(itf, f_path=file+'_build.c3d', compress_param_blocks=True)
 
