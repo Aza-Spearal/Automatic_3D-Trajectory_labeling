@@ -2,17 +2,23 @@ Si vous voulez seulement générer un fichier c3d avec les trajectoires assembl�
 Si vous voulez inférer des étiquettes avec le réseau de neurones, téléchargez tous le dossier.
 
 Le fichier lstm.py permet d'inférer les étiquettes
+
 Le fichier reader.py permet de lire les données csv et c3d
+
 Le fichier builder.py permet de construire les trajectoires c3d
+
 Le fichier template.c3d permet de générer un fichier c3d avec les trajectoires reconstituées
-Le dossier csv_train doit être rempli avec des fichiers csv d'entrainements.
+
 
 Le fichier lstm va d'abord lancer le fichier reader.py. Celui ci va lancer le fichier builder.py pour avoir les 15 trajectoires, si les noms des marqueurs ne sont pas données par builder.py le programme s'arretera.
+
 Une fois les données c3d obtenues et convertit pour servir d'input, reader.py va récupérer les données d'entrainement dans le dossier csv_train. Si les colonnes ne sont pas dans le bon ordre, les données ne seront pas récupérés.
 
-Pour lancer le réseau de neurones, exécuter la commande en mettant le fichier c3d en paramètre: exemple: python lstm.py Measurement12.c3d.
-Il faut aussi installer les bibliothèques python: torch, random, csv, h5py.
+
+Pour lancer le réseau de neurones, exécuter la commande en mettant le fichier c3d en paramètre: exemple: python lstm.py Measurement12.c3d. Il faut aussi installer les bibliothèques python: torch, random, csv, h5py. Enfin, il faut créer un dossier "csv_train" rempli avec les fichiers csv d'entrainements.
+
 Un fichier Results.txt est généré avec les étiquettes attribuées en fonction des frames
+
 
 Que vous utilisiez le fichier builder.py directement ou par l'intermédire du réseau de neurones, voici des consignes à respecter:
 
