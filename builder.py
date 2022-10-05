@@ -447,12 +447,57 @@ def main(file):
 
 
     #On cherche la distance minimum dans la matrice, on connecte les marqueurs dans le dictionnaire et on les supprime de la matrice dist jusqu'a ce que la plus petite distance restante soit d_max
+    #c'est notre premier algorithme de connexions
     d_max=dist.max(1).max()+1
     while (dist.min(1).min()<d_max):
         min=dist.stack().idxmin()
         connexion(connect, min[0], min[1])
         dist=dist.drop(min[0])
         dist=dist.drop(min[1], axis=1)
+        
+        
+    #si le premier algorithme ne donne pas des résultats satisfaisant, on essaye de second qui est moins performant, mais au moins on aura le bon nombre de marqueurs
+    if not (len(connect) == 15 and len(connect) == n_markers_present(0)):
+        print('Le second algorithme va être utilsé')
+        connect=connect_save.copy()
+        dist=dist_save.copy()
+
+        #on initialise connect avec les marqueurs de base
+        for i in markers_present(0):
+            connect[i] = [i]
+        
+        #pour tous les queues de connect, on cherche la trajectoire suivante la plus probable
+        while True:
+            suite={}
+            fini = True
+            for k,v in connect.items():
+                last = v[-1]
+                if last in dist.index:
+                    fini = False
+                    elm = dist.loc[last]#les possibles suites de v
+                    if elm.min() == elm.min():#si pas nan
+                        suite[last] = [elm.idxmin(), elm.min()]#
+
+            #si suite vide, on sort
+            if suite == {}:
+                break;
+
+            #parmis celle proposés, on connecte la trajectoire la plus probable avec sa queue
+            mini = suite[list(suite.keys())[0]]
+            for k,v in suite.items():
+                if mini[1]>v[1]:
+                    mini=v
+                    
+            list_concur= []
+            for k,v in suite.items():
+                if mini[0] == v[0]:
+                    list_concur = list_concur+[k]
+
+            for k, v in suite.items():
+                if mini == v:
+                    connexion(k,mini[0])
+                    dist=dist.drop(k)
+                    dist=dist.drop(mini[0], axis=1)
 
     
     #Création d'un fichier abstract.txt avec le dictionnaire connect et les artefacts détectés
@@ -485,12 +530,16 @@ def main(file):
 
     if n_frames_temp>n_frames:
         ret=c3d.delete_frames(itf, n_frames, n_frames_temp-n_frames)
+    elif n_frames_temp<n_frames:
+        raise Exception('Il faut modifier le fichier template pour avoir plus de frames')
 
     cpt=0
     #On créer un nouveau fichier c3d avec nos trajectoires
     for key in connect:
         val=connect[key]
         ret=c3d.add_marker(itf, key, labdico[key].to_numpy(), adjust_params=True)
+        #on rempli les marqueurs avec max 10 frames vides, il existe d'autre techniques de fill_gap dans la documentation de pyc3d que vous pouvez utilisez pour améliorer le remplissage
+        ret=c3d.fill_marker_gap_interp(itf, key, k=3, search_span_offset=5, min_needed_frs=10)
         cpt+=1
         print(str(cpt)+'/'+str(len(connect))+':', val)
 
