@@ -1,3 +1,6 @@
+Le dossier test contient 2 fichiers permettant de tester la détection d'artefacts et les connexions.
+
+
 Si vous voulez seulement générer un fichier c3d avec les trajectoires assemblées, téléchargez builder.py et template.py.
 Si vous voulez inférer des étiquettes avec le réseau de neurones, téléchargez tous le dossier.
 
