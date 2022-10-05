@@ -448,17 +448,27 @@ def main(file):
 
     #On cherche la distance minimum dans la matrice, on connecte les marqueurs dans le dictionnaire et on les supprime de la matrice dist jusqu'a ce que la plus petite distance restante soit d_max
     #c'est notre premier algorithme de connexions
+    # si on veut arreter l'algorithme plus tot, on met une limite. Avec les fichiers measurements on fait environ 150 à 180 connexions
+    limit=200
+    cpt=0
+    
     d_max=dist.max(1).max()+1
     while (dist.min(1).min()<d_max):
         min=dist.stack().idxmin()
         connexion(connect, min[0], min[1])
         dist=dist.drop(min[0])
         dist=dist.drop(min[1], axis=1)
-        
+        cpt+=1
+        if cpt == limit:
+            break;
+            
+    dist=dist.dropna(how='all')
         
     #si le premier algorithme ne donne pas des résultats satisfaisant, on essaye de second qui est moins performant, mais au moins on aura le bon nombre de marqueurs
-    if not (len(connect) == 15 and len(connect) == n_markers_present(0)):
-        print('Le second algorithme va être utilsé')
+    #evidemment si on arrete le premier algorithme plus tot avec la limite, on aura plus de 15 trajectoires. 
+    #Donc on regarde ce qui reste dans dist, si c'est pas vide, c'est qu'on est arreté plus tôt, donc on lance pas le second algo
+    if dist.empty and not (len(connect) == 15 and len(connect) == n_markers_present(0)):
+        print('Le second algorithme va être utilisé')
         connect=connect_save.copy()
         dist=dist_save.copy()
 
