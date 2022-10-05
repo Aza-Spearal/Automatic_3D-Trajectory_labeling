@@ -62,3 +62,6 @@ Pour chaque fichier "file.c3d" en paramètre va etre créé un fichier "file_bui
 Un fichier "Abstract.txt" est créé avec les informations sur les nouveaux fichiers
 
 -Depuis qualisys: Supprimer le marqueur "a_supprimer" de "Labeled trajectories"
+
+
+Vous pouvez aussi mettre une limite au nombre de connexions si vous voulez garder les connexions les plus probables et éviter trop d'erreur, il faut modifier la variable "limit" dans builder.py
