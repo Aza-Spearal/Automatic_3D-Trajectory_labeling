@@ -13,14 +13,14 @@ Le fichier builder.py permet de construire les trajectoires c3d
 Le fichier template.c3d permet de générer un fichier c3d avec les trajectoires reconstituées
 
 
-Le fichier lstm va d'abord lancer le fichier reader.py. Celui ci va lancer le fichier builder.py pour avoir les 15 trajectoires, si les noms des marqueurs ne sont pas données par builder.py le programme s'arretera.
+Le fichier lstm va d'abord lancer le fichier reader.py. Celui ci va lancer le fichier builder.py pour avoir les 15 trajectoires, si les noms des marqueurs ne sont pas donnés par builder.py le programme s'arretera.
 
-Une fois les données c3d obtenues et convertit pour servir d'input, reader.py va récupérer les données d'entrainement dans le dossier csv_train. Si les colonnes ne sont pas dans le bon ordre, les données ne seront pas récupérés.
+Une fois les données c3d obtenues et converties pour servir d'input, reader.py va récupérer les données d'entrainement dans le dossier csv_train. Si les colonnes ne sont pas dans le bon ordre, les données ne seront pas récupérées.
 
 
-Pour lancer le réseau de neurones, exécuter la commande en mettant le fichier c3d en paramètre: exemple: python lstm.py Measurement12.c3d. Il faut aussi installer les bibliothèques python: torch, random, csv, h5py. Enfin, il faut créer un dossier "csv_train" rempli avec les fichiers csv d'entrainements.
+Pour lancer le réseau de neurones, exécuter la commande en mettant le fichier c3d en paramètre: exemple: python lstm.py Measurement12.c3d. Il faut aussi installer les bibliothèques python: torch, random, csv, h5py. Enfin, il faut créer un dossier "csv_train" rempli avec les fichiers csv d'entrainement.
 
-Un fichier Results.txt est généré avec les étiquettes attribuées en fonction des frames
+Un fichier Results.txt est généré avec les étiquettes attribuées en fonction des frames.
 
 
 Que vous utilisiez le fichier builder.py directement ou par l'intermédire du réseau de neurones, voici des consignes à respecter:
@@ -44,7 +44,7 @@ Exporter qtm vers c3d dans Qualisys==========================================
 
 -Cliquer sur File->Export->To C3D... Les cases "exclude unidentified trajectories" et "exclude empty trajectories" doivent êtres cochées, Label Format: De facto standard, Event Outout Format: Following the c3d specification, Units: Millimeters. Cliquer sur "OK"
 
--Si le fichier c3d contient plus de 62576 frames (en 100 fps): créer une copie de ce fichier, supprimer toute les trajectoires à part une et renommez la pour la retrouver et la supprimer après le traitement. Renommer ce fichier "template.c3d" et mettez le à la place du fichier template.c3d fourni.
+-Si le fichier c3d contient plus de 62576 frames (en 100 fps): créer une copie de ce fichier, supprimer toutes les trajectoires à part une et renommez la pour la retrouver et la supprimer après le traitement. Renommer ce fichier "template.c3d" et mettez le à la place du fichier template.c3d fourni.
 
 
 Avant l'execution=======================================================
